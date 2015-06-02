@@ -48,23 +48,48 @@ draw4D <- function(drawData,x,y,z,col,mov=FALSE)
     }
 }
 
-calcK <- function(firstMag, secondMag, z)
+g_gr<-t(matrix(c(
+      -2.45204,    4.10188,   10.5258,-13.5889,
+      56.7969 , -140.913  ,  144.572 , 57.2155,
+    -466.949  ,  222.789  , -917.46  ,-78.0591,
+    2906.77   , 1500.8    , 1689.97  , 30.889 ,
+  -10453.7    ,-4419.56   ,-1011.01  ,  0     ,
+   17568      , 3236.68   ,    0     ,  0     ,
+  -10820.7    ,    0      ,    0     ,  0
+), nrow=4))
+
+r_gr<-t(matrix(c(
+       1.83285,  -2.71446,  4.97336,-3.66864,
+     -19.7595 ,  10.5033 , 18.8196 , 6.07785,
+      33.6059 ,-120.713  ,-49.299  , 0      ,
+     144.371  , 216.453  ,  0      , 0      ,
+    -295.39   ,   0      ,  0      , 0      
+), nrow=4))
+
+z_rz<-t(matrix(c(
+       0.669031, -3.08016,  9.87081,-7.07135,
+     -18.6165  ,  8.24314,-14.2716 ,13.8663 ,
+      94.1113  , 11.2971 ,-11.9588,  0      ,
+    -225.428   ,-17.8509 ,  0     ,  0      ,
+     197.505   ,  0      ,  0     ,  0
+), nrow=4))
+  
+u_ur<-t(matrix(c(
+       10.3686, -6.12658,  2.58748,-0.299322,
+     -138.069 , 45.0511 ,-10.8074 , 0.95854 ,
+      540.494 ,-43.7644 ,  3.84259, 0       ,
+    -1005.28  , 10.9763 ,  0      , 0       ,
+      710.482 ,  0      ,  0      , 0
+), nrow=4))
+
+calcK <- function(firstMag, secondMag, z, kc)
 {
-  a<-matrix(c(-2.45204,4.10188,10.5258,-13.5889,
-              56.7969,-140.913,144.572,57.2155,
-              -466.949,222.789,-917.46,-78.0591,
-              2906.77,1500.8,1689.97,30.889,
-              -10453.7,-4419.56,-1011.01,0,
-              17568,3236.68,0,0,
-              -10820.7,0,0,0), nrow=4)
-  a<-t(a)
-  print(a)
   kcor = 0.0
-  for(x in 1:4)
+  for(x in 1:ncol(kc))
   {
-    for(y in 1:7)
+    for(y in 1:nrow(kc))
     {
-      kcor = kcor + a[y,x] * z^y * (firstMag-secondMag)^x
+      kcor = kcor + kc[y,x] * z^y * (firstMag-secondMag)^x
     }
   }
   return(kcor)
@@ -93,7 +118,14 @@ draw4DDifference <- function(drawData,firstMag,secondMag,correction,mov=FALSE)
   }
 }
 
-sampleCZKM <- subset(sampleData, corrmag_g-corrmag_r > -0.1 & corrmag_g-corrmag_r < 2 & zerr>0 & zerr<0.001)
-sampleCZKM$myK = calcK(sampleCZKM$corrmag_g, sampleCZKM$corrmag_r, sampleCZKM$z)
-#draw4DDifference(sampleCZKM, "corrmag_g", "corrmag_r", "kcorr_g")
-draw4DDifference(sampleCZKM, "corrmag_g", "corrmag_r", "myK")
+# u_ur
+sampleCZKM <- subset(sampleData, corrmag_u-corrmag_r > -0.1 & corrmag_u-corrmag_r < 2.9 & zerr>0 & zerr<0.001)
+sampleCZKM$myK = calcK(sampleCZKM$corrmag_u, sampleCZKM$corrmag_r, sampleCZKM$z, u_ur)
+draw4DDifference(sampleCZKM, "corrmag_u", "corrmag_r", "myK")
+draw4DDifference(sampleCZKM, "corrmag_u", "corrmag_r", "kcorr_u")
+
+# z_rz
+sampleCZKM <- subset(sampleData, corrmag_r-corrmag_z > -0.1 & corrmag_r-corrmag_z < 2 & zerr>0 & zerr<0.001)
+sampleCZKM$myK = calcK(sampleCZKM$corrmag_r, sampleCZKM$corrmag_z, sampleCZKM$z, z_rz)
+draw4DDifference(sampleCZKM, "corrmag_r", "corrmag_z", "myK")
+
