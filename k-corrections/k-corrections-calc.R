@@ -1,7 +1,10 @@
 library(ggplot2)
-library(rgl)
+
 library(mgcv)
 
+library(animation)
+library(scatterplot3d)
+library(rgl)
 dataCZKM <- readRDS("/home/sheridan/R/astrophysics/k-corrections/data/czkm_catalog_final_150114-4.rds")
 dataCZKM <- dataCZKM[dataCZKM$corrmag_j < 1000,]
 dataCZKM <- dataCZKM[dataCZKM$corrmag_h < 1000,]
@@ -85,11 +88,11 @@ u_ur<-t(matrix(c(
 calcK <- function(firstMag, secondMag, z, kc)
 {
   kcor = 0.0
-  for(x in 1:ncol(kc))
+  for(x in 1:nrow(kc))
   {
-    for(y in 1:nrow(kc))
+    for(y in 1:ncol(kc))
     {
-      kcor = kcor + kc[y,x] * z^y * (firstMag-secondMag)^x
+      kcor = kcor + kc[x,y] * z^x * (firstMag-secondMag)^y
     }
   }
   return(kcor)
@@ -105,7 +108,7 @@ draw4DDifference <- function(drawData,firstMag,secondMag,correction,mov=FALSE)
   labelsColors=drawData[order(drawData$radec), ]$colors[seq(1, colorsCount, length.out = 10)]
   
   open3d(windowRect = c(0, 0, 800, 600), zoom = 1.1)  
-  plot3d(drawData[[firstMag]]-drawData[[secondMag]], drawData[["z"]], drawData[[correction]], 
+  surf3d(drawData[[firstMag]]-drawData[[secondMag]], drawData[["z"]], drawData[[correction]], 
          type="p", col=drawData$colors, 
          xlab=sprintf("%s-%s", firstMag, secondMag), ylab="Z", zlab=correction,
          site=5, lwd=15, alpha=0.5, size=2)
@@ -118,14 +121,34 @@ draw4DDifference <- function(drawData,firstMag,secondMag,correction,mov=FALSE)
   }
 }
 
+draw4DDifferenceScatter <- function(drawData,firstMag,secondMag,correction)
+{
+  saveGIF(
+  {
+    for (i in 1:100)
+    {
+      scatterplot3d(drawData[[firstMag]]-drawData[[secondMag]], 
+                    drawData[[correction]], 
+                    drawData[["z"]], 
+                    xlab=sprintf("%s-%s", firstMag, secondMag), zlab="Z", ylab=correction,
+                    angle=i)
+    }
+  },
+  interval = 0.1, 
+  ani.width = 550, 
+  ani.height = 350,
+  movie.name=sprintf("%s-%s__%s.gif", firstMag, secondMag, correction))
+}
+
 # u_ur
 sampleCZKM <- subset(sampleData, corrmag_u-corrmag_r > -0.1 & corrmag_u-corrmag_r < 2.9 & zerr>0 & zerr<0.001)
 sampleCZKM$myK = calcK(sampleCZKM$corrmag_u, sampleCZKM$corrmag_r, sampleCZKM$z, u_ur)
-draw4DDifference(sampleCZKM, "corrmag_u", "corrmag_r", "myK")
-draw4DDifference(sampleCZKM, "corrmag_u", "corrmag_r", "kcorr_u")
+draw4DDifferenceScatter(sampleCZKM, "corrmag_u", "corrmag_r", "myK")
+draw4DDifferenceScatter(sampleCZKM, "corrmag_u", "corrmag_r", "kcorr_u")
 
 # z_rz
 sampleCZKM <- subset(sampleData, corrmag_r-corrmag_z > -0.1 & corrmag_r-corrmag_z < 2 & zerr>0 & zerr<0.001)
 sampleCZKM$myK = calcK(sampleCZKM$corrmag_r, sampleCZKM$corrmag_z, sampleCZKM$z, z_rz)
-draw4DDifference(sampleCZKM, "corrmag_r", "corrmag_z", "myK")
+draw4DDifferenceScatter(sampleCZKM, "corrmag_r", "corrmag_z", "myK")
+draw4DDifferenceScatter(sampleCZKM, "corrmag_r", "corrmag_z", "kcorr_z")
 
